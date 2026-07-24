@@ -31,7 +31,7 @@ from openai import OpenAI
 
 # Guardrails-ai used for I/O guardrails
 from guardrails import Guard
-from guardrails.hub import PolitenessCheck
+from guardrails.hub import PolitenessCheck, ToxicLanguage
 
 # DeepEval for evaluation
 
@@ -100,15 +100,16 @@ def output_guardrail(text: str) -> str:
     # except Exception as e:
     #     raise ValueError(f"Output rejected due to NSFW content: {text}")
 
-    # POLITENESS CHECK
+    # TOXIC LANGUAGE CHECK
     guard = Guard().use(
-        PolitenessCheck(on_fail="exception")
+        ToxicLanguage(on_fail="exception", theshold=0.5, validation_method="sentence")
     )
 
     try:
         guard.validate(text)
+        return text
     except Exception as e:
-        raise ValueError(f"Output rejected due to politeness check failure: {text}")
+        raise ValueError(f"Output rejected due to toxic language check failure: {text}")
  
     return text
 
@@ -167,11 +168,14 @@ def run_agent(question: str) -> str:
 
 
 def chat(question) -> str:
-    question = input_guardrail(question)
-    answer = run_agent(question)
-    answer = output_guardrail(answer)
-    # evaluate_response(question, answer)
-    return answer
+    try:
+        question = input_guardrail(question)
+        answer = run_agent(question)
+        answer = output_guardrail(answer)
+        # evaluate_response(question, answer)
+        return answer
+    except Exception as e:
+        return str(e)
 
 cat_gpt_interface = gr.Interface(
     fn=chat,
