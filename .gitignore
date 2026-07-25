@@ -3,4 +3,6 @@
 .guardrails/*
 .venv/*
 .claude/*
+.gradio/*
 __pycache__/*
+custom/__pycache__/*

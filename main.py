@@ -1,8 +1,10 @@
 """
-cat_gpt — single-file FastAPI agent service.
+cat_gpt — LLM agent for answering questions about cats. Done as a demonstration of a simple agent
+with included input and output guardrails for prompt injection, length and output toxicity.
 
-Endpoint:
-    POST /chat — takes a string request body (a JSON string, e.g. `"why do cats purr?"`)
+Evals to be done with DeepEval unit tests and Arize Ax.
+
+Takes a string request body (a JSON string, e.g. `"why do cats purr?"`)
                  and returns the agent's reply as a JSON string in the response.
 
 Setup:
@@ -11,19 +13,14 @@ Setup:
 
 Run:
     python main.py
-    # or: uvicorn main:app --reload
-
-Try it:
-    curl -X POST http://localhost:8000/chat \
-         -H "Content-Type: application/json" \
-         -d '"why do cats purr?"'
+    Open http://127.0.0.1:8000
 """
 
-# IMPORTANT: Import instrumentation BEFORE openai to enable tracing
 from instrumentation import tracer_provider
 
 import os
 import re # For prompt injection guardrails.
+import json
 
 import gradio as gr
 
@@ -31,16 +28,16 @@ from openai import OpenAI
 
 # Guardrails-ai used for I/O guardrails
 from guardrails import Guard
-from guardrails.hub import PolitenessCheck, ToxicLanguage
+from guardrails_ai.toxic_language import ToxicLanguage
 
-# DeepEval for evaluation
+# DotEnv used for loading environment variables from .env file
+import dotenv
 
-
-#app = FastAPI(title="cat_gpt")
+dotenv.load_dotenv()
 
 # Reads OPENROUTER_API_KEY from the environment by default.
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
+    base_url=os.getenv("OPENROUTER_BASE_URL"),
     api_key=os.getenv("OPENROUTER_API_KEY")
 )
 
@@ -64,77 +61,52 @@ INJECTION_PATTERNS = [
     (r"\[INST\]|\[/INST\]|<<SYS>>", 0.9),  # model-specific tokens
 ]
 
-def input_guardrail(text: str) -> str:
+def input_guardrails(text: str) -> str:
     text = text.strip().lower()
 
     # BLOCKS ANYTHING LONGER THAN 200 CHARACTERS
     if len(text) > 200:
-        raise ValueError(f"Please try again with a shorter question: Questions with more than 200 characters ({len(text)} are not allowed)")
+        raise ValueError(f"Please try again with a shorter question: Questions with more than 200 characters i.e. ({len(text)} are not allowed)")
 
     # PROMPT INJECTION DETECTION
     for pattern, score in INJECTION_PATTERNS:
         if re.search(pattern, text):
             raise ValueError(f"Don't try to Prompt Inject me mate. I wasn't born yesterday. (score={score}): {text}")
     
+    # PROFANITY CHECK
+    # Attr: https://github.com/dsojevic/profanity-list/blob/main/en.json with some feline-related omissions
+    with open("assets/profanity/profanities.json", "r") as file:
+        profanities = json.load(file) 
+        for profanity in profanities:
+            profanity_match_and_id = profanity["match"].split(r'\|') + [profanity["id"]]
+            if any(word.lower() in text.lower().split() for word in profanity_match_and_id):
+                raise ValueError(f"Keep the language clean please. I don't accept profanity. Detected: {text}")
+
     return text
     
-
-def output_guardrail(text: str) -> str:
+def output_guardrails(text: str) -> str:
     text = text.strip().lower()
 
     # BLOCKS ANYTHING LONGER THAN 500 CHARACTERS
     if len(text) > 500:
         raise ValueError(f"Output rejected: Responses with more than 500 characters ({len(text)} are not allowed)")
-    
-
-    # # NSFW DETECTION (using Guardrails)
-    # guard = Guard().use(
-    #     NSFWText,
-    #     threshold=0.8,
-    #     validation_method="sentence",
-    #     on_fail="exception"
-    # )
-
-    # try:
-    #     guard.validate(text)
-    # except Exception as e:
-    #     raise ValueError(f"Output rejected due to NSFW content: {text}")
 
     # TOXIC LANGUAGE CHECK
     guard = Guard().use(
-        ToxicLanguage(on_fail="exception", theshold=0.5, validation_method="sentence")
+        ToxicLanguage(
+            threshold=0.2,
+            validation_method="full",
+            on_fail="exception"
+        )
     )
 
     try:
         guard.validate(text)
         return text
     except Exception as e:
-        raise ValueError(f"Output rejected due to toxic language check failure: {text}")
+        raise ValueError(f"Output rejected due to toxic language check failure")
  
     return text
-
-
-
-#    """Validate/sanitize the incoming request: length limits, prompt-injection
-#     screening, PII redaction, topic allow/block lists, etc.
-#     Raise or return a refusal string if the input is not allowed."""
-#     ...
-#
-# def output_guardrail(text: str) -> str:
-#     """Check the model's response before returning it: toxicity, policy
-#     compliance, groundedness, PII leakage, etc.
-#     Raise or return a safe fallback string if the output is not allowed."""
-#     ...
-
-
-# ---------------------------------------------------------------------------
-# Evals (stubs — to be implemented)
-# ---------------------------------------------------------------------------
-# def evaluate_response(question: str, answer: str) -> dict:
-#     """Score the completed turn (relevance, faithfulness, latency, token usage)
-#     and log it for offline evaluation / monitoring datasets."""
-#     ...
-
 
 def run_agent(question: str) -> str:
     """Agentic loop: send the question to the model and return its reply.
@@ -144,10 +116,10 @@ def run_agent(question: str) -> str:
     """
     messages = [
         {"role": "system", "content": """
-         You a chatbot aimed only at cats who speak English.
-         You respond courteously to questions from and about cats, cat behaviour,
+         You are a chatbot aimed only at cats who speak English.
+         You respond to questions from and about cats, cat behaviour,
          the location of catnip and mice, grooming and other cat-related topics.
-        "Everything not cat related is out of bounds and you should refuse to answer questions about it.
+         Everything not cat related is out of bounds and you should refuse to answer questions about it.
          Keep the response less than 500 characters long.
          """},
         {"role": "user", "content": question},
@@ -167,12 +139,11 @@ def run_agent(question: str) -> str:
     return "Agent stopped: reached the maximum number of iterations."
 
 
-def chat(question) -> str:
+def chat(question, include_guardrails=True) -> str:
     try:
-        question = input_guardrail(question)
+        question = input_guardrails(question) if include_guardrails else question
         answer = run_agent(question)
-        answer = output_guardrail(answer)
-        # evaluate_response(question, answer)
+        answer = output_guardrails(answer) if include_guardrails else answer
         return answer
     except Exception as e:
         return str(e)
