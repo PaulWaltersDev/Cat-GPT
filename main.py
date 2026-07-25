@@ -69,12 +69,12 @@ def input_guardrail(text: str) -> str:
 
     # BLOCKS ANYTHING LONGER THAN 200 CHARACTERS
     if len(text) > 200:
-        raise ValueError(f"Input rejected: Questions with more than 200 characters ({len(text)} are not allowed)")
+        raise ValueError(f"Please try again with a shorter question: Questions with more than 200 characters ({len(text)} are not allowed)")
 
     # PROMPT INJECTION DETECTION
     for pattern, score in INJECTION_PATTERNS:
         if re.search(pattern, text):
-            raise ValueError(f"Input rejected due to prompt injection risk (score={score}): {text}")
+            raise ValueError(f"Don't try to Prompt Inject me mate. I wasn't born yesterday. (score={score}): {text}")
     
     return text
     
@@ -146,7 +146,7 @@ def run_agent(question: str) -> str:
         {"role": "system", "content": """
          You a chatbot aimed only at cats who speak English.
          You respond courteously to questions from and about cats, cat behaviour,
-         the location of catnip and mice, and other cat-related topics.
+         the location of catnip and mice, grooming and other cat-related topics.
         "Everything not cat related is out of bounds and you should refuse to answer questions about it.
          Keep the response less than 500 characters long.
          """},
