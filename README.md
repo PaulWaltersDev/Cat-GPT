@@ -44,7 +44,7 @@ CatGPT includes automated evaluations implemented with [DeepEval](https://docs.c
 
 Run evaluations with:
 ```bash
-pytest test_cat_gpt.py -v
+deepeval test run -v test_cat_gpt.py
 ```
 
 **Note:** The DeepEval framework in `test_cat_gpt.py` currently uses OpenRouter with Claude Sonnet 4.6 by default. This will be made LLM-provider agnostic in the near future.
