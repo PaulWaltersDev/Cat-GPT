@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" style="background: white;">
+  <!-- Define styles -->
+  <defs>
+    <style>
+      .box { fill: #f0f9ff; stroke: #0369a1; stroke-width: 2; }
+      .guardrail { fill: #fef3c7; stroke: #d97706; stroke-width: 2; }
+      .llm { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; }
+      .error { fill: #fee2e2; stroke: #dc2626; stroke-width: 2; }
+      .arrow { stroke: #334155; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-error { stroke: #dc2626; stroke-width: 2; fill: none; marker-end: url(#arrowhead-error); stroke-dasharray: 5,5; }
+      .text-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #1e293b; }
+      .text-normal { font-family: Arial, sans-serif; font-size: 14px; fill: #334155; }
+      .text-small { font-family: Arial, sans-serif; font-size: 12px; fill: #64748b; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#334155" />
+    </marker>
+    <marker id="arrowhead-error" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#dc2626" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" class="text-title" style="font-size: 20px;">CatGPT Workflow with Guardrails</text>
+
+  <!-- User Input (Gradio) -->
+  <rect x="300" y="60" width="200" height="60" rx="5" class="box"/>
+  <text x="400" y="85" text-anchor="middle" class="text-title">User Input</text>
+  <text x="400" y="105" text-anchor="middle" class="text-small">(Gradio Interface)</text>
+
+  <!-- Arrow to Input Guardrails -->
+  <path d="M 400 120 L 400 160" class="arrow"/>
+
+  <!-- Input Guardrails Box -->
+  <rect x="250" y="160" width="300" height="120" rx="5" class="guardrail"/>
+  <text x="400" y="185" text-anchor="middle" class="text-title">Input Guardrails</text>
+  <text x="400" y="210" text-anchor="middle" class="text-normal">1. Length Check (≤200 chars)</text>
+  <text x="400" y="230" text-anchor="middle" class="text-normal">2. Prompt Injection Detection</text>
+  <text x="400" y="250" text-anchor="middle" class="text-normal">3. Profanity Filter</text>
+  <text x="400" y="270" text-anchor="middle" class="text-small" style="font-style: italic;">input_guardrails()</text>
+
+  <!-- Arrow to Agent Loop -->
+  <path d="M 400 280 L 400 320" class="arrow"/>
+  <text x="420" y="305" class="text-small">Pass</text>
+
+  <!-- Error path from Input Guardrails -->
+  <path d="M 550 220 L 650 220 L 650 880 L 500 880" class="arrow-error"/>
+  <text x="660" y="220" class="text-small" fill="#dc2626">Fail</text>
+
+  <!-- Agent Loop Box -->
+  <rect x="250" y="320" width="300" height="140" rx="5" class="llm"/>
+  <text x="400" y="345" text-anchor="middle" class="text-title">Agent Loop</text>
+  <text x="400" y="370" text-anchor="middle" class="text-normal">OpenAI-compatible LLM API</text>
+  <text x="400" y="390" text-anchor="middle" class="text-small">System prompt: Cat-related only</text>
+  <text x="400" y="410" text-anchor="middle" class="text-small">Max 8 iterations</text>
+  <text x="400" y="430" text-anchor="middle" class="text-small">Model: {MODEL from .env}</text>
+  <text x="400" y="450" text-anchor="middle" class="text-small" style="font-style: italic;">run_agent()</text>
+
+  <!-- Optional trace indicator -->
+  <rect x="560" y="350" width="180" height="40" rx="3" fill="#f0f9ff" stroke="#0369a1" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="650" y="368" text-anchor="middle" class="text-small">Optional: Arize AX</text>
+  <text x="650" y="383" text-anchor="middle" class="text-small">OpenTelemetry Tracing</text>
+
+  <!-- Arrow to Output Guardrails -->
+  <path d="M 400 460 L 400 500" class="arrow"/>
+
+  <!-- Output Guardrails Box -->
+  <rect x="250" y="500" width="300" height="100" rx="5" class="guardrail"/>
+  <text x="400" y="525" text-anchor="middle" class="text-title">Output Guardrails</text>
+  <text x="400" y="550" text-anchor="middle" class="text-normal">1. Length Check (≤500 chars)</text>
+  <text x="400" y="570" text-anchor="middle" class="text-normal">2. Toxic Language Check</text>
+  <text x="400" y="590" text-anchor="middle" class="text-small" style="font-style: italic;">output_guardrails()</text>
+
+  <!-- Arrow to Success Output -->
+  <path d="M 400 600 L 400 640" class="arrow"/>
+  <text x="420" y="625" class="text-small">Pass</text>
+
+  <!-- Error path from Output Guardrails -->
+  <path d="M 550 550 L 620 550 L 620 880 L 500 880" class="arrow-error"/>
+  <text x="630" y="550" class="text-small" fill="#dc2626">Fail</text>
+
+  <!-- Success Output -->
+  <rect x="300" y="640" width="200" height="60" rx="5" class="box" fill="#f0fdf4" stroke="#16a34a"/>
+  <text x="400" y="665" text-anchor="middle" class="text-title">LLM Response</text>
+  <text x="400" y="685" text-anchor="middle" class="text-small">(Valid cat-related answer)</text>
+
+  <!-- Arrow to User Output -->
+  <path d="M 400 700 L 400 740" class="arrow"/>
+
+  <!-- User Output (Gradio) -->
+  <rect x="300" y="740" width="200" height="60" rx="5" class="box"/>
+  <text x="400" y="765" text-anchor="middle" class="text-title">Display to User</text>
+  <text x="400" y="785" text-anchor="middle" class="text-small">(Gradio Interface)</text>
+
+  <!-- Error Output Box -->
+  <rect x="300" y="850" width="200" height="60" rx="5" class="error"/>
+  <text x="400" y="875" text-anchor="middle" class="text-title">Error Message</text>
+  <text x="400" y="895" text-anchor="middle" class="text-small">(Guardrail rejection)</text>
+
+  <!-- Arrow from Error to User Output -->
+  <path d="M 400 910 L 400 940 L 300 940 L 300 770 L 300 770" class="arrow-error"/>
+
+  <!-- Legend -->
+  <text x="50" y="950" class="text-title" style="font-size: 14px;">Legend:</text>
+  <rect x="50" y="960" width="80" height="25" rx="3" class="guardrail"/>
+  <text x="60" y="978" class="text-small">Guardrails</text>
+  <rect x="150" y="960" width="80" height="25" rx="3" class="llm"/>
+  <text x="160" y="978" class="text-small">LLM Process</text>
+  <rect x="250" y="960" width="80" height="25" rx="3" class="box"/>
+  <text x="260" y="978" class="text-small">I/O</text>
+</svg>

@@ -73,16 +73,16 @@ def input_guardrails(text: str) -> str:
     # PROMPT INJECTION DETECTION
     for pattern, score in INJECTION_PATTERNS:
         if re.search(pattern, text):
-            raise ValueError(f"Don't try to Prompt Inject me mate. I wasn't born yesterday. (score={score}): {text}")
+            raise ValueError(f"Don't try to Prompt Inject this kitty, mate. I wasn't born yesterday. (score={score}): {text}")
     
     # PROFANITY CHECK
     # Attr: https://github.com/dsojevic/profanity-list/blob/main/en.json with some feline-related omissions
     with open("assets/profanity/profanities.json", "r") as file:
         profanities = json.load(file) 
         for profanity in profanities:
-            profanity_match_and_id = profanity["match"].split(r'\|') + [profanity["id"]]
+            profanity_match_and_id = profanity["match"].replace("*", "").split('|') + [profanity["id"]]
             if any(word.lower() in text.lower().split() for word in profanity_match_and_id):
-                raise ValueError(f"Keep the language clean please. I don't accept profanity. Detected: {text}")
+                raise ValueError(f"Keep the language clean please. Good felines don't use profanity.")
 
     return text
     

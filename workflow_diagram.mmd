@@ -1,0 +1,32 @@
+flowchart TD
+    Start([User Input via Gradio]) --> InputGuard{Input Guardrails}
+
+    InputGuard -->|Length Check<br/>≤200 chars| ProfanityCheck[Profanity Filter]
+    InputGuard -->|Prompt Injection<br/>Detection| ProfanityCheck
+
+    ProfanityCheck -->|Pass| Agent[Agent Loop<br/>OpenAI-compatible LLM<br/>Max 8 iterations<br/>Model from .env]
+    InputGuard -->|Fail| Error[Error Message]
+
+    Agent -->|Optional| Trace[Arize AX<br/>OpenTelemetry Tracing]
+    Trace -.-> Agent
+
+    Agent --> OutputGuard{Output Guardrails}
+
+    OutputGuard -->|Length Check<br/>≤500 chars| ToxicCheck[Toxic Language Check]
+
+    ToxicCheck -->|Pass| Success[LLM Response<br/>Valid cat-related answer]
+    OutputGuard -->|Fail| Error
+
+    Success --> Display([Display to User<br/>via Gradio])
+    Error --> Display
+
+    style InputGuard fill:#fef3c7,stroke:#d97706,stroke-width:3px
+    style OutputGuard fill:#fef3c7,stroke:#d97706,stroke-width:3px
+    style ProfanityCheck fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    style ToxicCheck fill:#fef3c7,stroke:#d97706,stroke-width:2px
+    style Agent fill:#f0fdf4,stroke:#16a34a,stroke-width:3px
+    style Trace fill:#f0f9ff,stroke:#0369a1,stroke-width:2px,stroke-dasharray: 5 5
+    style Error fill:#fee2e2,stroke:#dc2626,stroke-width:2px
+    style Success fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style Start fill:#f0f9ff,stroke:#0369a1,stroke-width:2px
+    style Display fill:#f0f9ff,stroke:#0369a1,stroke-width:2px
