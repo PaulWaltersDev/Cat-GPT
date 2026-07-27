@@ -16,15 +16,11 @@ Run:
     Open http://127.0.0.1:8000
 """
 
-from instrumentation import tracer_provider
-
 import os
 import re # For prompt injection guardrails.
 import json
 
 import gradio as gr
-
-from openai import OpenAI
 
 # Guardrails-ai used for I/O guardrails
 from guardrails import Guard
@@ -35,13 +31,19 @@ import dotenv
 
 dotenv.load_dotenv()
 
+# Only loads the trace if the user wants to use ARIZE AX.
+if os.getenv("USE_ARIZE"):
+    from instrumentation import tracer_provider
+
+from openai import OpenAI
+
 # Reads OPENROUTER_API_KEY from the environment by default.
 client = OpenAI(
-    base_url=os.getenv("OPENROUTER_BASE_URL"),
-    api_key=os.getenv("OPENROUTER_API_KEY")
+    base_url=os.getenv("BASE_URL"),
+    api_key=os.getenv("API_KEY")
 )
 
-MODEL = "deepseek/deepseek-v4-flash"
+MODEL = os.getenv("MODEL")
 MAX_ITERATIONS = 8
 
 # ---------------------------------------------------------------------------
@@ -109,17 +111,21 @@ def output_guardrails(text: str) -> str:
     return text
 
 def run_agent(question: str) -> str:
-    """Agentic loop: send the question to the model and return its reply.
+    """LLM Workflow: send the question to the model and return its reply.
+    Currently there are no guardrails at this level, they are implemented in
+    the calling function.
 
-    The loop is where tool calls / multi-step reasoning will live later; for
-    now it completes in a single turn when the model returns plain text.
+    Currently there are no external tools, so this is not a "proper" AI agent as such.
+    The workflow is implemented as a single pass agentic loop - this allows for the
+    easy addition of tool calling or "re-ask" guardrails in future releases.
     """
     messages = [
         {"role": "system", "content": """
-         You are a chatbot aimed only at cats who speak English.
+         You are a chatbot aimed at cats who speak English and people interested in cats.
          You respond to questions from and about cats, cat behaviour,
          the location of catnip and mice, grooming and other cat-related topics.
-         Everything not cat related is out of bounds and you should refuse to answer questions about it.
+         Everything not explicitly from a cat, or alternatively cat related
+         is out of bounds and you must refuse to answer questions about it.
          Keep the response less than 500 characters long.
          """},
         {"role": "user", "content": question},

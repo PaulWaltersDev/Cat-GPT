@@ -7,9 +7,13 @@ A single-file agentic chatbot that answers questions exclusively about cats. Bui
 - Serves a Gradio web interface at `http://127.0.0.1:8000`
 - Accepts natural-language questions about cats and cat behaviour
 - Refuses any off-topic questions (enforced by the system prompt)
-- Runs an agentic loop (max 8 iterations) powered by **DeepSeek V4 Flash** via [OpenRouter](https://openrouter.ai/)
+- Runs an agentic loop (max 8 iterations) powered by an OpenAI-compatible LLM API
 - Applies input and output guardrails on every request (see below)
-- Emits OpenTelemetry traces to [Arize AX](https://arize.com/) for monitoring
+- Emits OpenTelemetry traces to [Arize AX](https://arize.com/) for monitoring (optional)
+
+## Workflow
+
+See the complete workflow diagram with guardrails: [workflow_diagram.svg](workflow_diagram.svg)
 
 ## Guardrails
 
@@ -18,33 +22,50 @@ A single-file agentic chatbot that answers questions exclusively about cats. Bui
 |-------|-------|
 | Length | Max 200 characters |
 | Prompt injection | Regex patterns detect and block common injection attempts (e.g. "ignore previous instructions", "jailbreak", "DAN mode") |
+| Profanity | Blocks profanity using a curated word list |
 
 ### Output
 | Check | Limit |
 |-------|-------|
 | Length | Max 500 characters |
-| Toxic language | Guardrails AI `ToxicLanguage` validator (sentence-level, threshold 0.5) |
+| Toxic language | Guardrails AI `ToxicLanguage` validator (threshold 0.2, validation_method "full") |
 
 Any guardrail failure returns an error message to the user instead of the model's response.
+
+## Evaluations
+
+CatGPT includes automated evaluations implemented with [DeepEval](https://docs.confident-ai.com/) and pytest:
+
+| Evaluation | Type | Description |
+|------------|------|-------------|
+| **Only About Cats** | GEval (LLM-as-judge) | Verifies that responses contain only cat-related information or polite refusals for off-topic questions |
+| **Toxicity (with guardrails)** | ToxicityMetric | Confirms that the output guardrail successfully blocks toxic language (threshold 0.20) |
+| **Toxicity (without guardrails)** | ToxicityMetric | Validates that the base model produces non-toxic responses even without guardrail enforcement |
+
+Run evaluations with:
+```bash
+pytest test_cat_gpt.py -v
+```
+
+**Note:** The DeepEval framework in `test_cat_gpt.py` currently uses OpenRouter with Claude Sonnet 4.6 by default. This will be made LLM-provider agnostic in the near future.
 
 ## Requirements
 
 - Python 3.9+
-- An [OpenRouter](https://openrouter.ai/) API key
+- An API key for an OpenAI-compatible LLM provider (e.g., [OpenRouter](https://openrouter.ai/), OpenAI, Azure OpenAI)
 - (Optional) An [Arize AX](https://arize.com/) account for tracing
 
 ## Installation
 
 ```bash
-pip install fastapi uvicorn openai gradio guardrails-ai guardrails-hub \
+pip install openai gradio guardrails-ai \
             arize-otel openinference-instrumentation-openai python-dotenv
 ```
 
-Install the required Guardrails Hub validators:
+Install the required Guardrails Hub validator:
 
 ```bash
 guardrails hub install hub://guardrails/toxic_language
-guardrails hub install hub://guardrails/politeness_check
 ```
 
 ## Configuration
@@ -52,10 +73,30 @@ guardrails hub install hub://guardrails/politeness_check
 Create a `.env` file in the project root (or export the variables in your shell):
 
 ```env
-# Required
-OPENROUTER_API_KEY=sk-or-...
+# Required - OpenAI-compatible API configuration
+API_KEY=your-api-key-here
+BASE_URL=https://api.example.com/v1
+MODEL=model-name
 
-# Required for Arize tracing
+# Example for OpenRouter:
+# API_KEY=sk-or-...
+# BASE_URL=https://openrouter.ai/api/v1
+# MODEL=deepseek/deepseek-v4-flash
+
+# Example for OpenAI:
+# API_KEY=sk-...
+# BASE_URL=https://api.openai.com/v1
+# MODEL=gpt-4o
+
+# Example for Azure OpenAI:
+# API_KEY=your-azure-key
+# BASE_URL=https://your-resource.openai.azure.com/openai/deployments/your-deployment
+# MODEL=gpt-4
+
+# Optional — enables Arize tracing (set to any non-empty value)
+USE_ARIZE=true
+
+# Required when USE_ARIZE is set
 ARIZE_SPACE_ID=your-space-id
 ARIZE_API_KEY=your-api-key
 
@@ -77,11 +118,16 @@ The Gradio interface will be available at `http://127.0.0.1:8000`.
 cat_gpt/
 ├── main.py              # Application entry point — agent loop, guardrails, Gradio UI
 ├── instrumentation.py   # Arize AX / OpenTelemetry setup (imported before openai)
+├── test_cat_gpt.py      # DeepEval evaluation suite with pytest integration
+├── assets/
+│   └── profanity/
+│       └── profanities.json  # Profanity word list for input filtering
 └── .env                 # Environment variables (not committed)
 ```
 
 ## Architecture notes
 
-- `instrumentation.py` **must** be imported before the `openai` package to enable full tracing; `main.py` handles this at the top of the file.
+- `instrumentation.py` is imported conditionally (when `USE_ARIZE` is set) before the `openai` package to enable full tracing.
 - The agentic loop in `run_agent()` supports future tool-call expansion — tool results can be appended to the message list and the loop will continue up to `MAX_ITERATIONS = 8`.
-- Evaluation hooks (`evaluate_response`) are stubbed and ready to be wired up with [DeepEval](https://docs.confident-ai.com/) or a similar framework.
+- Evaluation hooks are implemented using [DeepEval](https://docs.confident-ai.com/) in `test_cat_gpt.py` with pytest integration for relevance and toxicity metrics.
+- CatGPT uses the OpenAI Python SDK with configurable `base_url`, `api_key`, and model selection to support any OpenAI-compatible API provider.
