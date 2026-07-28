@@ -47,7 +47,33 @@ Run evaluations with:
 deepeval test run -v test_cat_gpt.py
 ```
 
-**Note:** The DeepEval framework in `test_cat_gpt.py` currently uses OpenRouter with Claude Sonnet 4.6 by default. This will be made LLM-provider agnostic in the near future.
+### DeepEval Configuration
+
+CatGPT's evaluation suite supports any OpenAI-compatible LLM provider through DeepEval's `GPTModel` class. Configure your evaluator by adding these environment variables to your `.env` file:
+
+```env
+# DeepEval LLM Configuration (for evaluations)
+DEEPEVAL_MODEL=model-name
+DEEPEVAL_API_KEY=your-api-key
+DEEPEVAL_OPENAI_URL=https://api.example.com/v1
+
+# Example for OpenRouter:
+# DEEPEVAL_MODEL=anthropic/claude-sonnet-4.6
+# DEEPEVAL_API_KEY=sk-or-...
+# DEEPEVAL_OPENAI_URL=https://openrouter.ai/api/v1
+
+# Example for OpenAI:
+# DEEPEVAL_MODEL=gpt-4o
+# DEEPEVAL_API_KEY=sk-...
+# DEEPEVAL_OPENAI_URL=https://api.openai.com/v1
+
+# Example for Azure OpenAI:
+# DEEPEVAL_MODEL=gpt-4
+# DEEPEVAL_API_KEY=your-azure-key
+# DEEPEVAL_OPENAI_URL=https://your-resource.openai.azure.com/openai/deployments/your-deployment
+```
+
+**Note:** The evaluation LLM configuration is independent from the main application's LLM configuration. You can use different providers for the application (`API_KEY`, `BASE_URL`, `MODEL`) and for evaluations (`DEEPEVAL_MODEL`, `DEEPEVAL_API_KEY`, `DEEPEVAL_OPENAI_URL`).
 
 ## Requirements
 
@@ -58,7 +84,7 @@ deepeval test run -v test_cat_gpt.py
 ## Installation
 
 ```bash
-pip install openai gradio guardrails-ai \
+pip install openai gradio guardrails-ai deepeval \
             arize-otel openinference-instrumentation-openai python-dotenv
 ```
 
@@ -119,6 +145,9 @@ cat_gpt/
 ├── main.py              # Application entry point — agent loop, guardrails, Gradio UI
 ├── instrumentation.py   # Arize AX / OpenTelemetry setup (imported before openai)
 ├── test_cat_gpt.py      # DeepEval evaluation suite with pytest integration
+├── custom/
+│   ├── open_ai.py       # DeepEval model configuration for OpenAI-compatible providers
+│   └── openrouter.py    # DeepEval model configuration for OpenRouter (legacy)
 ├── assets/
 │   └── profanity/
 │       └── profanities.json  # Profanity word list for input filtering

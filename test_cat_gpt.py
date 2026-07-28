@@ -8,7 +8,7 @@ from deepeval.dataset import Golden, EvaluationDataset
 from deepeval.metrics import GEval, ToxicityMetric
 from deepeval.tracing import observe, update_current_trace
 from deepeval.test_case import LLMTestCase, SingleTurnParams
-from custom.openrouter import get_model
+from custom.open_ai import get_model
 
 goldens_only_about_cats = [
     Golden(input="I can't find the cat litter. Has da hoomins stolen it?"),

@@ -63,6 +63,8 @@ INJECTION_PATTERNS = [
     (r"\[INST\]|\[/INST\]|<<SYS>>", 0.9),  # model-specific tokens
 ]
 
+# Input guardrails - Length, Profanity, Prompt Injection
+
 def input_guardrails(text: str) -> str:
     text = text.strip().lower()
 
@@ -85,6 +87,8 @@ def input_guardrails(text: str) -> str:
                 raise ValueError(f"Keep the language clean please. Good felines don't use profanity.")
 
     return text
+
+# Output Guardrails - Length and Toxicity
     
 def output_guardrails(text: str) -> str:
     text = text.strip().lower()
@@ -93,7 +97,7 @@ def output_guardrails(text: str) -> str:
     if len(text) > 500:
         raise ValueError(f"Output rejected: Responses with more than 500 characters ({len(text)} are not allowed)")
 
-    # TOXIC LANGUAGE CHECK
+    # TOXIC LANGUAGE CHECK USING GUARDRAILS-AI
     guard = Guard().use(
         ToxicLanguage(
             threshold=0.2,
@@ -109,6 +113,8 @@ def output_guardrails(text: str) -> str:
         raise ValueError(f"Output rejected due to toxic language check failure")
  
     return text
+
+# AI Loop (not currently a full loop)
 
 def run_agent(question: str) -> str:
     """LLM Workflow: send the question to the model and return its reply.
@@ -140,7 +146,7 @@ def run_agent(question: str) -> str:
         if not message.tool_calls:
             return message.content or ""
 
-        # (future) execute requested tool calls and append their results here
+        # To Add Tool Calls here at a future date.
 
     return "Agent stopped: reached the maximum number of iterations."
 
@@ -153,6 +159,8 @@ def chat(question, include_guardrails=True) -> str:
         return answer
     except Exception as e:
         return str(e)
+
+# Gradio UI
 
 cat_gpt_interface = gr.Interface(
     fn=chat,
