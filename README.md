@@ -1,6 +1,6 @@
 # CatGPT
 
-A single-file agentic chatbot that answers questions exclusively about cats. Built with a Gradio web UI, it routes requests through input/output guardrails before hitting the LLM, and ships with Arize AX OpenTelemetry tracing out of the box.
+A single-file, stateless Q&A LLM chatbot that answers questions exclusively about cats. Built with a Gradio web UI, it routes requests through input/output guardrails before hitting the LLM, and ships with Arize AX OpenTelemetry tracing out of the box.
 
 ## What it does
 
