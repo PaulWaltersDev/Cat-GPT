@@ -7,7 +7,7 @@ A single-file agentic chatbot that answers questions exclusively about cats. Bui
 - Serves a Gradio web interface at `http://127.0.0.1:8000`
 - Accepts natural-language questions about cats and cat behaviour
 - Refuses any off-topic questions (enforced by the system prompt)
-- Runs an agentic loop (max 8 iterations) powered by an OpenAI-compatible LLM API
+- Runs an agentic single pass workflow (soon to be a full agentic loop) powered by an OpenAI-compatible LLM API
 - Applies input and output guardrails on every request (see below)
 - Emits OpenTelemetry traces to [Arize AX](https://arize.com/) for monitoring (optional)
 
@@ -157,6 +157,6 @@ cat_gpt/
 ## Architecture notes
 
 - `instrumentation.py` is imported conditionally (when `USE_ARIZE` is set) before the `openai` package to enable full tracing.
-- The agentic loop in `run_agent()` supports future tool-call expansion — tool results can be appended to the message list and the loop will continue up to `MAX_ITERATIONS = 8`.
+- The LLM workflow in `run_agent()` supports future tool-call expansion and agentic loop — tool results can be appended to the message list and eventually the loop will continue up to `MAX_ITERATIONS = 8`.
 - Evaluation hooks are implemented using [DeepEval](https://docs.confident-ai.com/) in `test_cat_gpt.py` with pytest integration for relevance and toxicity metrics.
 - CatGPT uses the OpenAI Python SDK with configurable `base_url`, `api_key`, and model selection to support any OpenAI-compatible API provider.
